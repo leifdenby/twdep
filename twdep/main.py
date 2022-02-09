@@ -7,6 +7,7 @@ import asciidag
 import asciidag.graph
 import asciidag.node
 import rich
+import rich.text
 import rich.tree
 
 
@@ -31,19 +32,38 @@ def get_tasks(uuid=None, filter_args=[]):
 
 def _make_label(task_data, show_uuid):
     status = task_data["status"]
-    if status in ["deleted", "completed"]:
-        label = f"({status}): {task_data['description']}"
+    vtags = task_data.get("vtags", [])
+
+    if "BLOCKED" in vtags:
+        id_style = "yellow1"
+    elif status == "completed":
+        id_style = None
     else:
-        label = f"{task_data['id']}: {task_data['description']}"
+        id_style = "green1 bold"
+
+    if status in ["deleted", "completed"]:
+        id_label = f"({status})"
+    else:
+        id_label = f"{task_data['id']}"
+
+    parts = [
+        (id_label, id_style),
+        f": {task_data['description']}",
+    ]
 
     if show_uuid:
-        label += f" [{task_data['uuid']}]"
+        parts.append(" [{task_data['uuid']}]")
+
+    label = rich.text.Text.assemble(*parts)
+
     return label
 
 
 def main(filter_args, exclude_completed=False, show_uuid=False):
     tasks = get_tasks(filter_args=filter_args)
     root_name = len(filter_args) > 0 and " ".join(filter_args) or "tasks"
+
+    blocked_tasks = get_tasks(filter_args=["+BLOCKED"])
 
     missing_tasks = {}
 
@@ -56,6 +76,12 @@ def main(filter_args, exclude_completed=False, show_uuid=False):
         else:
             for td_uuid in task_data["depends"]:
                 deps.setdefault(td_uuid, []).append(t_uuid)
+
+    # add BLOCKED virtual tag
+    for t_uuid in blocked_tasks.keys():
+        if t_uuid not in tasks:
+            continue
+        tasks[t_uuid].setdefault("vtags", []).append("BLOCKED")
 
     # look-up any tasks which are dependended on, but weren't part of the
     # original query result (these may be deleted or completed)
@@ -106,7 +132,29 @@ def main(filter_args, exclude_completed=False, show_uuid=False):
         if t_uuid not in has_children:
             tree.append(node)
 
-    asciidag.graph.Graph().show_nodes(tree)
+    class RichFH:
+        """
+        Hacky wrapper for rich.print so that I can use it with the
+        `.show_nodes()` from asciidag
+        """
+
+        def write(self, obj):
+            add_newline = False
+            text = None
+            if isinstance(obj, str):
+                if obj.strip():
+                    text = rich.text.Text.from_ansi(obj)
+                if "\n" in obj:
+                    add_newline = True
+            else:
+                text = obj
+
+            if text is not None:
+                rich.print(text, end="")
+            if add_newline:
+                print()
+
+    asciidag.graph.Graph(fh=RichFH()).show_nodes(tree)
 
 
 if __name__ == "__main__":
