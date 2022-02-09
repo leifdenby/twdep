@@ -38,7 +38,7 @@ def _make_label(task_data, show_uuid):
         id_style = "yellow1"
     elif "ACTIVE" in vtags:
         id_style = "bright_magenta bold"
-    elif status == "completed":
+    elif status in ["completed", "deleted"]:
         id_style = None
     else:
         id_style = "green1 bold"
