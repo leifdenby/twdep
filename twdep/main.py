@@ -36,6 +36,8 @@ def _make_label(task_data, show_uuid):
 
     if "BLOCKED" in vtags:
         id_style = "yellow1"
+    elif "ACTIVE" in vtags:
+        id_style = "bright_magenta bold"
     elif status == "completed":
         id_style = None
     else:
@@ -64,6 +66,7 @@ def main(filter_args, exclude_completed=False, show_uuid=False):
     root_name = len(filter_args) > 0 and " ".join(filter_args) or "tasks"
 
     blocked_tasks = get_tasks(filter_args=["+BLOCKED"])
+    active_tasks = get_tasks(filter_args=["+ACTIVE"])
 
     missing_tasks = {}
 
@@ -82,6 +85,11 @@ def main(filter_args, exclude_completed=False, show_uuid=False):
         if t_uuid not in tasks:
             continue
         tasks[t_uuid].setdefault("vtags", []).append("BLOCKED")
+    # add ACTIVE virtual tag
+    for t_uuid in active_tasks.keys():
+        if t_uuid not in tasks:
+            continue
+        tasks[t_uuid].setdefault("vtags", []).append("ACTIVE")
 
     # look-up any tasks which are dependended on, but weren't part of the
     # original query result (these may be deleted or completed)
