@@ -5,8 +5,8 @@ import rich.tree
 import asciidag
 import asciidag.node
 import asciidag.graph
-import sys
-import itertools
+import time
+import os
 
 
 def get_tasks(uuid=None, filter_args=[]):
@@ -80,9 +80,9 @@ def main(filter_args, exclude_completed=False, show_uuid=False):
     while len(tasks) > 0:
         task_data = None
         for t_uuid in list(tasks.keys()):
-            parents_exist = all([
-                td_uuid in nodes for td_uuid in tasks[t_uuid]["depends"]
-            ])
+            parents_exist = all(
+                [td_uuid in nodes for td_uuid in tasks[t_uuid]["depends"]]
+            )
 
             if parents_exist:
                 task_data = tasks.pop(t_uuid)
@@ -91,9 +91,7 @@ def main(filter_args, exclude_completed=False, show_uuid=False):
         if task_data is not None:
             label = _make_label(task_data, show_uuid=show_uuid)
             parents = []
-            parents = [
-                nodes[td_uuid] for td_uuid in task_data["depends"]
-            ]
+            parents = [nodes[td_uuid] for td_uuid in task_data["depends"]]
             has_children = has_children.union(task_data["depends"])
             node = asciidag.node.Node(label, parents=parents)
             nodes[t_uuid] = node
@@ -112,10 +110,22 @@ def main(filter_args, exclude_completed=False, show_uuid=False):
 
 if __name__ == "__main__":
     import argparse
+
     argparser = argparse.ArgumentParser()
     argparser.add_argument("filter", nargs="*")
     argparser.add_argument("--show-uuid", default=False, action="store_true")
+    argparser.add_argument("--keep-open", default=False, action="store_true")
     args = argparser.parse_args()
 
     filter_args = args.filter
-    main(filter_args=filter_args, show_uuid=args.show_uuid)
+
+    def render_tree():
+        main(filter_args=filter_args, show_uuid=args.show_uuid)
+
+    if not args.keep_open:
+        render_tree()
+    else:
+        while True:
+            os.system("clear")
+            render_tree()
+            time.sleep(5)
