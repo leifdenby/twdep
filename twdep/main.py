@@ -1,12 +1,13 @@
-import subprocess
 import json
+import os
+import subprocess
+import time
+
+import asciidag
+import asciidag.graph
+import asciidag.node
 import rich
 import rich.tree
-import asciidag
-import asciidag.node
-import asciidag.graph
-import time
-import os
 
 
 def get_tasks(uuid=None, filter_args=[]):
