@@ -139,20 +139,10 @@ def main(filter_args, exclude_completed=False, show_uuid=False):
         """
 
         def write(self, obj):
-            add_newline = False
-            text = None
             if isinstance(obj, str):
-                if obj.strip():
-                    text = rich.text.Text.from_ansi(obj)
-                if "\n" in obj:
-                    add_newline = True
+                print(obj, end="")
             else:
-                text = obj
-
-            if text is not None:
-                rich.print(text, end="")
-            if add_newline:
-                print()
+                rich.print(obj, end="")
 
     asciidag.graph.Graph(fh=RichFH()).show_nodes(tree)
 
