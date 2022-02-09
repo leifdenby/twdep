@@ -28,16 +28,19 @@ def get_tasks(uuid=None, filter_args=[]):
     return tasks
 
 
-def _make_label(task_data):
+def _make_label(task_data, show_uuid):
     status = task_data["status"]
     if status in ["deleted", "completed"]:
-        return f"({status}): {task_data['description']}"
+        label = f"({status}): {task_data['description']}"
+    else:
+        label = f"{task_data['id']}: {task_data['description']}"
 
-    return f"{task_data['id']}: {task_data['description']}"
+    if show_uuid:
+        label += f" [{task_data['uuid']}]"
+    return label
 
 
-def main():
-    filter_args = sys.argv[1:]
+def main(filter_args, exclude_completed=False, show_uuid=False):
     tasks = get_tasks(filter_args=filter_args)
     root_name = len(filter_args) > 0 and " ".join(filter_args) or "tasks"
 
@@ -65,12 +68,12 @@ def main():
 
     for t_uuid in nodeps:
         task_data = tasks.pop(t_uuid)
-        label = _make_label(task_data)
+        label = _make_label(task_data, show_uuid=show_uuid)
         node = asciidag.node.Node(label, parents=[root_node])
         nodes[t_uuid] = node
 
     for t_uuid, task_data in missing_tasks.items():
-        label = _make_label(task_data)
+        label = _make_label(task_data, show_uuid=show_uuid)
         node = asciidag.node.Node(label)
         nodes[t_uuid] = node
 
@@ -86,7 +89,7 @@ def main():
                 break
 
         if task_data is not None:
-            label = _make_label(task_data)
+            label = _make_label(task_data, show_uuid=show_uuid)
             parents = []
             parents = [
                 nodes[td_uuid] for td_uuid in task_data["depends"]
@@ -108,4 +111,11 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+    argparser = argparse.ArgumentParser()
+    argparser.add_argument("filter", nargs="*")
+    argparser.add_argument("--show-uuid", default=False, action="store_true")
+    args = argparser.parse_args()
+
+    filter_args = args.filter
+    main(filter_args=filter_args, show_uuid=args.show_uuid)
